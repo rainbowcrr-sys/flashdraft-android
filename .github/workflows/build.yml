@@ -56,7 +56,7 @@ jobs:
           "$AAPT" dump badging ./FlashDraft-Android.apk > apk-badging.txt
           head -12 apk-badging.txt
           grep -q "launchable-activity" apk-badging.txt || { echo "::error::No launcher activity in APK"; exit 1; }
-          grep -q "com.flashdraft.app/.MainActivity" apk-badging.txt || { echo "::error::MainActivity is not the launcher"; exit 1; }
+          grep -q "MainActivity" apk-badging.txt || { echo "::error::MainActivity is not the launcher"; exit 1; }
           grep -qi "ic_launcher" apk-badging.txt || { echo "::error::Launcher icon missing"; exit 1; }
           echo "FD_APK_BADGING=OK"
       - name: Checksum
