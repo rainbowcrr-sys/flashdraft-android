@@ -5,6 +5,12 @@ on:
     branches: [ main ]
     tags: [ 'v0.*' ]
   pull_request:
+  schedule:
+    - cron: '23 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -15,28 +21,112 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       - name: Install Android workload
-        shell: bash
         run: dotnet workload install android
       - name: Build
-        shell: bash
+        run: dotnet build FlashDraft.Android.sln -c Release --verbosity minimal
+      - name: Create a signing key for the installable APK
         run: |
-          set +e
-          set +o pipefail
-          dotnet build FlashDraft.Android.sln -c Release --verbosity minimal > build.log 2>&1
-          status=$?
-          cat build.log
-          if [ "$status" -ne 0 ]; then
-            tail -40 build.log | while IFS= read -r line; do echo "::error::build: $line"; done
-            exit "$status"
+          keytool -genkeypair -v -keystore flashdraft.keystore -alias flashdraft             -keyalg RSA -keysize 2048 -validity 10000             -storepass flashdraft -keypass flashdraft             -dname "CN=FlashDraft, O=FlashDraft, C=CN" 2>/dev/null
+      - name: Publish signed APK
+        run: |
+          dotnet publish src/FlashDraft.Android/FlashDraft.Android.csproj -c Release             -f net10.0-android36.0 -o ./publish             -p:AndroidSigningKeyStore=$PWD/flashdraft.keystore             -p:AndroidSigningStorePass=flashdraft             -p:AndroidSigningKeyAlias=flashdraft             -p:AndroidSigningKeyPass=flashdraft
+          APK=$(find ./publish -name '*Signed.apk' -print -quit)
+          if [ -z "$APK" ]; then APK=$(find ./publish -name '*.apk' -print -quit); fi
+          if [ -z "$APK" ]; then echo "::error::No APK was produced"; exit 1; fi
+          cp "$APK" ./FlashDraft-Android.apk
+          SIGNER=$(find "$ANDROID_HOME" -type f -name apksigner -print -quit 2>/dev/null || true)
+          if [ -n "$SIGNER" ] && ! "$SIGNER" verify ./FlashDraft-Android.apk >/dev/null 2>&1; then
+            "$SIGNER" sign --ks flashdraft.keystore --ks-pass pass:flashdraft               --key-pass pass:flashdraft --out ./FlashDraft-Android-signed.apk ./FlashDraft-Android.apk
+            mv ./FlashDraft-Android-signed.apk ./FlashDraft-Android.apk
           fi
-      - name: Publish unsigned APK
-        run: dotnet publish src/FlashDraft.Android/FlashDraft.Android.csproj -c Release -f net10.0-android36.0 -o ./publish
-      # The APK stays unsigned at zero cost and is shipped with a SHA-256 sum.
       - name: Checksum
-        run: sha256sum ./publish/*.apk > SHA256SUMS.txt
+        run: sha256sum ./FlashDraft-Android.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: flashdraft-android
+          if-no-files-found: error
           path: |
-            ./publish/*.apk
+            ./FlashDraft-Android.apk
             ./SHA256SUMS.txt
+
+  emulator-smoke:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: flashdraft-android
+          path: dist
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules || true
+          sudo udevadm trigger --name-match=kvm || true
+      - name: Install and launch the app on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          script: |
+            adb install -r dist/FlashDraft-Android.apk
+            adb shell am start -n com.flashdraft.app/.MainActivity
+            sleep 10
+            if adb shell ps -A | grep -q com.flashdraft.app; then
+              echo "FD_SMOKE=APP_ALIVE"
+            else
+              echo "::error::FD_SMOKE=APP_EXITED"
+              adb logcat -d -t 200
+              exit 1
+            fi
+  release:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: flashdraft-*
+          path: dist
+          merge-multiple: true
+      - name: Publish build artifacts to a GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t FILES < <(find dist -type f -print)
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "::error::No build artifacts were downloaded"
+            exit 1
+          fi
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            TAG="${GITHUB_REF_NAME}"
+            TITLE="FlashDraft ${TAG}"
+            NOTES="Stable release ${TAG}. All packages are unsigned; verify SHA256SUMS before use."
+            PRERELEASE=0
+          elif [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then
+            TAG="nightly"
+            TITLE="Nightly build $(date -u +%F)"
+            NOTES="Automated nightly build. Unsigned and unverified; use at your own risk."
+            PRERELEASE=1
+          else
+            TAG="edge"
+            TITLE="Edge build"
+            NOTES="Rolling build from the main branch. Unsigned and unverified."
+            PRERELEASE=1
+          fi
+          ARGS=()
+          if [[ "$PRERELEASE" == "1" ]]; then ARGS+=(--prerelease); fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # Remove stale assets so nightly/edge releases never accumulate old files.
+            gh release view "$TAG" --json assets --jq '.assets[].name' | while IFS= read -r name; do
+              gh release delete-asset "$TAG" "$name" --yes >/dev/null 2>&1 || true
+            done
+            gh release upload "$TAG" "${FILES[@]}" --clobber
+          else
+            gh release create "$TAG" "${ARGS[@]}" --title "$TITLE" --notes "$NOTES" "${FILES[@]}"
+          fi
+          echo "Published ${#FILES[@]} file(s) to release $TAG"
