@@ -1,0 +1,15 @@
+github_credentials.txt
+*.pat
+*.token
+*.secret
+*.keystore
+*.jks
+bin/
+obj/
+artifacts/
+publish/
+*.user
+*.suo
+.vscode/
+*.nupkg
+*.log
