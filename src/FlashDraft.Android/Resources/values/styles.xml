@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <!-- Avalonia.Android requires a NoActionBar platform theme. -->
-  <style name="AppTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
-    <item name="android:windowNoTitle">true</item>
-    <item name="android:windowActionBar">false</item>
-    <item name="android:windowFullscreen">false</item>
+  <!-- AvaloniaMainActivity derives from AppCompatActivity; an AppCompat
+       descendant theme is mandatory or the activity exits in onCreate. -->
+  <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
     <item name="android:windowBackground">@color/ic_launcher_background</item>
+    <item name="windowActionBar">false</item>
+    <item name="windowNoTitle">true</item>
   </style>
 </resources>
