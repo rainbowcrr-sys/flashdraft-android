@@ -15,14 +15,21 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       - name: Install Android workload
-        run: dotnet workload install android && dotnet workload restore FlashDraft.Android.sln
+        shell: bash
+        run: |
+          dotnet workload install android 2>&1 | tee workload.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            tail -20 workload.log | while IFS= read -r line; do echo "::error::workload: $line"; done
+            exit "$status"
+          fi
       - name: Build
         shell: bash
         run: |
           dotnet build FlashDraft.Android.sln -c Release --verbosity minimal 2>&1 | tee build.log
           status=${PIPESTATUS[0]}
           if [ "$status" -ne 0 ]; then
-            grep -iE "error|failed|not supported|NU[0-9]|workload" build.log | head -25 | while IFS= read -r line; do echo "::error::$line"; done
+            tail -40 build.log | while IFS= read -r line; do echo "::error::build: $line"; done
             exit "$status"
           fi
       - name: Publish unsigned APK
