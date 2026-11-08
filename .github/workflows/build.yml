@@ -73,7 +73,7 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
-    continue-on-error: true
+    continue-on-error: false
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -91,19 +91,8 @@ jobs:
           target: default
           arch: x86_64
           script: |
-            set -x
-            adb devices
-            adb install -r dist/FlashDraft-Android.apk
-            adb shell am start -n com.flashdraft.app/.MainActivity || true
-            sleep 12
-            adb shell ps -A | grep com.flashdraft.app || true
-            if adb shell ps -A | grep -q com.flashdraft.app; then
-              echo "FD_SMOKE=APP_ALIVE"
-            else
-              echo "FD_SMOKE=APP_EXITED"
-              adb logcat -d | tail -50 | while IFS= read -r line; do echo "::error::$line"; done
-              exit 1
-            fi
+            python3 "$GITHUB_WORKSPACE/packaging/smoke.py"
+
   release:
     if: github.event_name != 'pull_request'
     needs: build
