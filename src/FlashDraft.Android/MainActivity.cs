@@ -11,7 +11,7 @@ namespace FlashDraft.AndroidHost;
     MainLauncher = true,
     LaunchMode = LaunchMode.SingleTop,
     ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.UiMode)]
-public sealed class MainActivity : AvaloniaMainActivity<App>
+public sealed class MainActivity : AvaloniaMainActivity<global::FlashDraft.App.App>
 {
     // Adjustable: camera-based QR scanning and foreground service wiring belong
     // here when the pairing and background transfer flows are enabled.

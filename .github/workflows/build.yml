@@ -17,7 +17,14 @@ jobs:
       - name: Install Android workload
         run: dotnet workload install android && dotnet workload restore FlashDraft.Android.sln
       - name: Build
-        run: dotnet build FlashDraft.Android.sln -c Release --verbosity minimal
+        shell: bash
+        run: |
+          dotnet build FlashDraft.Android.sln -c Release --verbosity minimal 2>&1 | tee build.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            grep -iE "error|failed|not supported|NU[0-9]|workload" build.log | head -25 | while IFS= read -r line; do echo "::error::$line"; done
+            exit "$status"
+          fi
       - name: Publish unsigned APK
         run: dotnet publish src/FlashDraft.Android/FlashDraft.Android.csproj -c Release -f net10.0-android26.0 -o ./publish
       # The APK stays unsigned at zero cost and is shipped with a SHA-256 sum.
