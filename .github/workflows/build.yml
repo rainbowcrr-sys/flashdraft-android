@@ -16,18 +16,15 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Install Android workload
         shell: bash
-        run: |
-          dotnet workload install android 2>&1 | tee workload.log
-          status=${PIPESTATUS[0]}
-          if [ "$status" -ne 0 ]; then
-            tail -20 workload.log | while IFS= read -r line; do echo "::error::workload: $line"; done
-            exit "$status"
-          fi
+        run: dotnet workload install android
       - name: Build
         shell: bash
         run: |
-          dotnet build FlashDraft.Android.sln -c Release --verbosity minimal 2>&1 | tee build.log
-          status=${PIPESTATUS[0]}
+          set +e
+          set +o pipefail
+          dotnet build FlashDraft.Android.sln -c Release --verbosity minimal > build.log 2>&1
+          status=$?
+          cat build.log
           if [ "$status" -ne 0 ]; then
             tail -40 build.log | while IFS= read -r line; do echo "::error::build: $line"; done
             exit "$status"
