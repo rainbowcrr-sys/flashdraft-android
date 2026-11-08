@@ -30,7 +30,7 @@ jobs:
             exit "$status"
           fi
       - name: Publish unsigned APK
-        run: dotnet publish src/FlashDraft.Android/FlashDraft.Android.csproj -c Release -f net10.0-android34.0 -o ./publish
+        run: dotnet publish src/FlashDraft.Android/FlashDraft.Android.csproj -c Release -f net10.0-android36.0 -o ./publish
       # The APK stays unsigned at zero cost and is shipped with a SHA-256 sum.
       - name: Checksum
         run: sha256sum ./publish/*.apk > SHA256SUMS.txt
