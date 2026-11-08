@@ -16,8 +16,8 @@ public class MainView : UserControl
             Foreground = Brushes.White,
             FontSize = 20,
             Margin = new Thickness(24),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
         };
     }
 }
