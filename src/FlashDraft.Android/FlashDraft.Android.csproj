@@ -11,6 +11,7 @@
     <AndroidManifest>AndroidManifest.xml</AndroidManifest>
     <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
     <AndroidUseAapt2>true</AndroidUseAapt2>
+    <RuntimeIdentifiers>android-arm64;android-x64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia.Android" Version="11.2.0" />

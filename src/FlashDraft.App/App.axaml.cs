@@ -1,27 +1,33 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Markup.Xaml;
+using Avalonia.Themes.Fluent;
 
 namespace FlashDraft.App;
 
-public partial class App : global::Avalonia.Application
+/// <summary>
+/// Styles and the view tree are built in code. Android does not embed
+/// precompiled XAML for a referenced class library, so AvaloniaXamlLoader
+/// would throw during Initialize and the activity would exit immediately.
+/// </summary>
+public class App : global::Avalonia.Application
 {
-    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+    public override void Initialize()
+    {
+        Styles.Add(new FluentTheme());
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {
-        // Desktop uses a classic lifetime with a Window; Android and other
-        // single-view platforms need MainView to be assigned explicitly.
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
         {
-            desktop.MainWindow = new MainWindow
+            singleView.MainView = new MainView
             {
                 DataContext = new MainViewModel(),
             };
         }
-        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
+        else if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            singleView.MainView = new MainView
+            desktop.MainWindow = new MainWindow
             {
                 DataContext = new MainViewModel(),
             };
