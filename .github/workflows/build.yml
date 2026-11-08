@@ -71,14 +71,17 @@ jobs:
           target: default
           arch: x86_64
           script: |
+            set -x
+            adb devices
             adb install -r dist/FlashDraft-Android.apk
-            adb shell am start -n com.flashdraft.app/.MainActivity
-            sleep 10
+            adb shell am start -n com.flashdraft.app/.MainActivity || true
+            sleep 12
+            adb shell ps -A | grep com.flashdraft.app || true
             if adb shell ps -A | grep -q com.flashdraft.app; then
               echo "FD_SMOKE=APP_ALIVE"
             else
-              echo "::error::FD_SMOKE=APP_EXITED"
-              adb logcat -d -t 200
+              echo "FD_SMOKE=APP_EXITED"
+              adb logcat -d | tail -50 | while IFS= read -r line; do echo "::error::$line"; done
               exit 1
             fi
   release:
