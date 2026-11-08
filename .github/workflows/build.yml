@@ -8,6 +8,15 @@ on:
   schedule:
     - cron: '23 2 * * *'
   workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Release channel for manual runs'
+        required: false
+        default: 'edge'
+        type: choice
+        options:
+          - edge
+          - nightly
 
 permissions:
   contents: write
@@ -39,6 +48,17 @@ jobs:
             "$SIGNER" sign --ks flashdraft.keystore --ks-pass pass:flashdraft               --key-pass pass:flashdraft --out ./FlashDraft-Android-signed.apk ./FlashDraft-Android.apk
             mv ./FlashDraft-Android-signed.apk ./FlashDraft-Android.apk
           fi
+      - name: Verify APK launcher activity and icon
+        shell: bash
+        run: |
+          AAPT=$(find "$ANDROID_HOME/build-tools" -type f -name aapt2 -print -quit)
+          if [ -z "$AAPT" ]; then echo "::warning::aapt2 not found; skipping APK inspection"; exit 0; fi
+          "$AAPT" dump badging ./FlashDraft-Android.apk > apk-badging.txt
+          head -12 apk-badging.txt
+          grep -q "launchable-activity" apk-badging.txt || { echo "::error::No launcher activity in APK"; exit 1; }
+          grep -q "com.flashdraft.app/.MainActivity" apk-badging.txt || { echo "::error::MainActivity is not the launcher"; exit 1; }
+          grep -qi "ic_launcher" apk-badging.txt || { echo "::error::Launcher icon missing"; exit 1; }
+          echo "FD_APK_BADGING=OK"
       - name: Checksum
         run: sha256sum ./FlashDraft-Android.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
@@ -50,7 +70,7 @@ jobs:
             ./SHA256SUMS.txt
 
   emulator-smoke:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: build
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -115,7 +135,7 @@ jobs:
             TITLE="FlashDraft ${TAG}"
             NOTES="Stable release ${TAG}. All packages are unsigned; verify SHA256SUMS before use."
             PRERELEASE=0
-          elif [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then
+          elif [[ "${GITHUB_EVENT_NAME}" == "schedule" || "${{ inputs.channel }}" == "nightly" ]]; then
             TAG="nightly"
             TITLE="Nightly build $(date -u +%F)"
             NOTES="Automated nightly build. Unsigned and unverified; use at your own risk."
