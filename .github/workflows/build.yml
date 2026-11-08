@@ -75,6 +75,7 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: false
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: flashdraft-android
@@ -87,9 +88,12 @@ jobs:
       - name: Install and launch the app on an emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: 33
           target: default
           arch: x86_64
+          cores: 2
+          ram-size: 2048M
+          disable-animations: true
           script: |
             python3 "$GITHUB_WORKSPACE/packaging/smoke.py"
 
