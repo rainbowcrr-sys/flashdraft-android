@@ -6,7 +6,7 @@ FlashDraft 的 Android 客户端（局域网与互联网文件快传工具）。
 
 ## Requirements / 运行环境
 
-- Android 8.0 (API 26) or later
+- Android 8.0 (API 26) or later (compiled against API 34)
 - Latest stable .NET SDK with the Android workload for development
 
 ## Build / 构建
