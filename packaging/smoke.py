@@ -27,6 +27,13 @@ def main():
     print("process listing: " + out.strip()[-400:])
     if alive:
         print("::warning::FD_SMOKE=APP_ALIVE")
+        import base64
+        png = os.path.join(workspace, "phone.png")
+        with open(png, "wb") as handle:
+            subprocess.run("adb exec-out screencap -p", shell=True, stdout=handle)
+        blob = base64.b64encode(open(png, "rb").read()).decode()
+        open(os.path.join(workspace, "phone-b64.txt"), "w").write(blob)
+        print("FD_PHONE_B64=" + str(len(blob)))
         return 0
 
     print("::error::FD_SMOKE=APP_EXITED")
