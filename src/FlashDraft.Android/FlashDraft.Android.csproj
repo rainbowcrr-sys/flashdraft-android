@@ -6,8 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationId>com.flashdraft.app</ApplicationId>
-    <ApplicationVersion>2</ApplicationVersion>
-    <ApplicationDisplayVersion>0.1.1</ApplicationDisplayVersion>
+    <ApplicationVersion>3</ApplicationVersion>
+    <ApplicationDisplayVersion>0.1.2</ApplicationDisplayVersion>
     <AndroidManifest>AndroidManifest.xml</AndroidManifest>
     <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
     <AndroidUseAapt2>true</AndroidUseAapt2>
