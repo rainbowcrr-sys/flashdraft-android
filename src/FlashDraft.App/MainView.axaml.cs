@@ -8,9 +8,9 @@ using Canvas = Avalonia.Controls.Canvas;
 using CheckBox = Avalonia.Controls.CheckBox;
 using Grid = Avalonia.Controls.Grid;
 using ListBox = Avalonia.Controls.ListBox;
-using Path = Avalonia.Shapes.Path;
+using Path = Avalonia.Controls.Shapes.Path;
 using ProgressBar = Avalonia.Controls.ProgressBar;
-using Rectangle = Avalonia.Shapes.Rectangle;
+using Rectangle = Avalonia.Controls.Shapes.Rectangle;
 using ScrollViewer = Avalonia.Controls.ScrollViewer;
 using StackPanel = Avalonia.Controls.StackPanel;
 using TextBlock = Avalonia.Controls.TextBlock;
@@ -164,7 +164,7 @@ public class MainView : UserControl
         Stroke = Brushes.White,
         StrokeThickness = 7,
         StrokeLineCap = PenLineCap.Round,
-        StrokeLineJoin = PenLineJoin.Round,
+        StrokeJoin = PenLineJoin.Round,
     };
 
     private static Border PairingCard()
