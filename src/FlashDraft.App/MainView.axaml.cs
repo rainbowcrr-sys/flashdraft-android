@@ -40,6 +40,8 @@ public class MainView : UserControl
     private static readonly SolidColorBrush Line =
         new(Color.Parse("#E6EBF4"));
 
+    private Grid? _host;
+
     public MainView()
     {
         var root = new Grid { Background = new SolidColorBrush(Color.Parse("#F2F5FB")) };
@@ -101,9 +103,11 @@ public class MainView : UserControl
                                        FontWeight = FontWeight.SemiBold, Foreground = Blue,
                                        HorizontalAlignment = HorizontalAlignment.Center,
                                        VerticalAlignment = VerticalAlignment.Center };
-        var about = new TextBlock { Text = "About", FontSize = 14, Foreground = Muted,
-                                    HorizontalAlignment = HorizontalAlignment.Center,
-                                    VerticalAlignment = VerticalAlignment.Center };
+        var about = new Button { Content = "About", FontSize = 14, Foreground = Muted,
+                                 Background = Brushes.Transparent,
+                                 HorizontalAlignment = HorizontalAlignment.Center,
+                                 VerticalAlignment = VerticalAlignment.Center };
+        about.Click += (_, _) => ShowAboutLicense();
         Grid.SetColumn(transfer, 0);
         Grid.SetColumn(about, 1);
         tabGrid.Children.Add(transfer);
@@ -112,7 +116,131 @@ public class MainView : UserControl
         Grid.SetRow(tabs, 2);
         root.Children.Add(tabs);
 
-        Content = root;
+        var host = new Grid();
+        host.Children.Add(root);
+        _host = host;
+        if (!LicenseGate.IsAccepted())
+        {
+            host.Children.Add(BuildLicenseGate(host));
+        }
+
+        Content = host;
+    }
+
+    /// <summary>
+    /// Full-screen first-run license page. Without ticking the box the user
+    /// cannot reach the main view; the app is left running so the user exits
+    /// manually, exactly as requested.
+    /// </summary>
+    private Border BuildLicenseGate(Grid host)
+    {
+        var veil = new Border
+        {
+            Background = new SolidColorBrush(Color.Parse("#E6F2F5FB")),
+        };
+
+        var hint = new TextBlock
+        {
+            Text = "Decline by closing the app manually / 不接受请手动退出应用",
+            FontSize = 10,
+            Foreground = Muted,
+            TextWrapping = TextWrapping.Wrap,
+        };
+        var check = new CheckBox
+        {
+            Content = "我已阅读并接受 / I have read and accept",
+            Foreground = Dark,
+            FontSize = 12,
+        };
+        var proceed = new Button
+        {
+            Content = "继续 / Continue",
+            Background = Blue,
+            Foreground = Brushes.White,
+            Padding = new Thickness(16, 11),
+            FontSize = 13,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+        proceed.Click += (_, _) =>
+        {
+            if (check.IsChecked != true)
+            {
+                hint.Text = "Please tick the box first / 请先勾选";
+                return;
+            }
+
+            LicenseGate.MarkAccepted();
+            host.Children.Remove(veil);
+        };
+
+        var stack = new StackPanel { Margin = new Thickness(18), Spacing = 10 };
+        stack.Children.Add(new TextBlock { Text = "License Agreement / 许可协议",
+                                           FontSize = 17, FontWeight = FontWeight.SemiBold,
+                                           Foreground = Blue });
+        stack.Children.Add(new Border
+        {
+            Height = 230,
+            Background = Brushes.White,
+            BorderBrush = Line,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(10),
+            Child = new ScrollViewer
+            {
+                Content = new TextBlock { Text = LicenseContent.Text,
+                                          TextWrapping = TextWrapping.Wrap,
+                                          FontSize = 10, Foreground = Dark },
+            },
+        });
+        stack.Children.Add(check);
+        stack.Children.Add(proceed);
+        stack.Children.Add(hint);
+        veil.Child = stack;
+        return veil;
+    }
+
+    /// <summary>About tab re-opens the full license after acceptance.</summary>
+    private void ShowAboutLicense()
+    {
+        Grid? host = _host;
+        if (host is null) return;
+
+        var veil = new Border
+        {
+            Background = new SolidColorBrush(Color.Parse("#E6F2F5FB")),
+        };
+        var close = new Button
+        {
+            Content = "关闭 / Close",
+            Background = Blue,
+            Foreground = Brushes.White,
+            Padding = new Thickness(16, 11),
+            FontSize = 13,
+        };
+        close.Click += (_, _) => host.Children.Remove(veil);
+
+        var stack = new StackPanel { Margin = new Thickness(18), Spacing = 10 };
+        stack.Children.Add(new TextBlock { Text = "License / 许可全文",
+                                           FontSize = 17, FontWeight = FontWeight.SemiBold,
+                                           Foreground = Blue });
+        stack.Children.Add(new Border
+        {
+            Height = 380,
+            Background = Brushes.White,
+            BorderBrush = Line,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(10),
+            Child = new ScrollViewer
+            {
+                Content = new TextBlock { Text = LicenseContent.Text,
+                                          TextWrapping = TextWrapping.Wrap,
+                                          FontSize = 10, Foreground = Dark },
+            },
+        });
+        stack.Children.Add(close);
+        veil.Child = stack;
+        host.Children.Add(veil);
     }
 
     /// <summary>The real FlashDraft icon, redrawn as vector geometry.</summary>

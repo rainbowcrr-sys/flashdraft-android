@@ -22,7 +22,34 @@ permissions:
   contents: write
 
 jobs:
+  precheck:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          # Only the scheduled nightly is skipped. Every other event builds.
+          if [[ "${{ github.event_name }}" != "schedule" ]]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          SHA="${{ github.sha }}"
+          BODY="$(gh release view nightly --json body --jq '.body' 2>/dev/null || true)"
+          if [[ "$BODY" == *"Build-SHA: $SHA"* ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Nightly already built for $SHA; skipping."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    needs: precheck
+    if: needs.precheck.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -175,6 +202,7 @@ jobs:
             NOTES="Rolling build from the main branch. Unsigned and unverified."
             PRERELEASE=1
           fi
+          NOTES="${NOTES} | Build-SHA: ${GITHUB_SHA}"
           ARGS=()
           if [[ "$PRERELEASE" == "1" ]]; then ARGS+=(--prerelease); fi
           if gh release view "$TAG" >/dev/null 2>&1; then
@@ -183,6 +211,7 @@ jobs:
               gh release delete-asset "$TAG" "$name" --yes >/dev/null 2>&1 || true
             done
             gh release upload "$TAG" "${FILES[@]}" --clobber
+            gh release edit "$TAG" --notes "$NOTES" || true
           else
             gh release create "$TAG" "${ARGS[@]}" --title "$TITLE" --notes "$NOTES" "${FILES[@]}"
           fi
