@@ -101,37 +101,37 @@ jobs:
         if: always()
         shell: bash
         run: |
-          python3 -c 'import pathlib; p=pathlib.Path("phone-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+3000] for i in range(0,len(b),3000)]; [print("::warning::FD_PHONE:%d:%s"%(i,x)) for i,x in enumerate(c[0:7],start=0)]'
+          python3 -c 'import pathlib; p=pathlib.Path("phone-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+12000] for i in range(0,len(b),3000)]; [print("::warning::FD_PHONE:%d:%s"%(i,x)) for i,x in enumerate(c[0:7],start=0)]'
 
       - name: Emit phone frame part 2
         if: always()
         shell: bash
         run: |
-          python3 -c 'import pathlib; p=pathlib.Path("phone-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+3000] for i in range(0,len(b),3000)]; [print("::warning::FD_PHONE:%d:%s"%(i,x)) for i,x in enumerate(c[7:14],start=7)]'
+          python3 -c 'import pathlib; p=pathlib.Path("phone-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+12000] for i in range(0,len(b),3000)]; [print("::warning::FD_PHONE:%d:%s"%(i,x)) for i,x in enumerate(c[7:14],start=7)]'
 
       - name: Emit phone frame part 3
         if: always()
         shell: bash
         run: |
-          python3 -c 'import pathlib; p=pathlib.Path("phone-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+3000] for i in range(0,len(b),3000)]; [print("::warning::FD_PHONE:%d:%s"%(i,x)) for i,x in enumerate(c[14:21],start=14)]'
+          python3 -c 'import pathlib; p=pathlib.Path("phone-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+12000] for i in range(0,len(b),3000)]; [print("::warning::FD_PHONE:%d:%s"%(i,x)) for i,x in enumerate(c[14:21],start=14)]'
 
       - name: Emit phone frame part 4
         if: always()
         shell: bash
         run: |
-          python3 -c 'import pathlib; p=pathlib.Path("phone-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+3000] for i in range(0,len(b),3000)]; [print("::warning::FD_PHONE:%d:%s"%(i,x)) for i,x in enumerate(c[21:28],start=21)]'
+          python3 -c 'import pathlib; p=pathlib.Path("phone-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+12000] for i in range(0,len(b),3000)]; [print("::warning::FD_PHONE:%d:%s"%(i,x)) for i,x in enumerate(c[21:28],start=21)]'
 
       - name: Emit phone frame part 5
         if: always()
         shell: bash
         run: |
-          python3 -c 'import pathlib; p=pathlib.Path("phone-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+3000] for i in range(0,len(b),3000)]; [print("::warning::FD_PHONE:%d:%s"%(i,x)) for i,x in enumerate(c[28:35],start=28)]'
+          python3 -c 'import pathlib; p=pathlib.Path("phone-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+12000] for i in range(0,len(b),3000)]; [print("::warning::FD_PHONE:%d:%s"%(i,x)) for i,x in enumerate(c[28:35],start=28)]'
 
       - name: Emit phone frame part 6
         if: always()
         shell: bash
         run: |
-          python3 -c 'import pathlib; p=pathlib.Path("phone-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+3000] for i in range(0,len(b),3000)]; [print("::warning::FD_PHONE:%d:%s"%(i,x)) for i,x in enumerate(c[35:42],start=35)]'
+          python3 -c 'import pathlib; p=pathlib.Path("phone-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+12000] for i in range(0,len(b),3000)]; [print("::warning::FD_PHONE:%d:%s"%(i,x)) for i,x in enumerate(c[35:42],start=35)]'
 
   release:
     if: github.event_name != 'pull_request'
