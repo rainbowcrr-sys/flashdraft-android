@@ -26,29 +26,42 @@ namespace FlashDraft.App;
 /// <summary>
 /// Phone layout. Transfer, About and the first-run License page are three
 /// separate, equal-level pages: the host swaps its single child instead of
-/// stacking a translucent overlay on top of the main interface. Every page
-/// shares the same brand bar, white cards and blue section headers.
-/// The control tree is built in code and no ViewModel is constructed, so the
-/// activity keeps the verified startup path on Android.
+/// stacking a translucent overlay on top of the main interface.
+///
+/// Refined visual system: a taller brand bar with a status pill, cards with a
+/// tinted header strip and hairline dividers, rounded filled inputs, rounded
+/// primary / secondary / danger buttons, and a bottom tab strip with an active
+/// indicator. The control tree is still built in code and no ViewModel is
+/// constructed, so the verified Android startup path is untouched.
 /// </summary>
 public class MainView : UserControl
 {
     private static readonly SolidColorBrush Blue =
-        new(Color.Parse("#0B47C9"));
-    private static readonly SolidColorBrush Dark =
-        new(Color.Parse("#1B2430"));
+        new(Color.Parse("#1358DF"));
+    private static readonly SolidColorBrush BlueSoft =
+        new(Color.Parse("#4A8BFF"));
+    private static readonly SolidColorBrush Ink =
+        new(Color.Parse("#16202F"));
     private static readonly SolidColorBrush Muted =
-        new(Color.Parse("#667085"));
+        new(Color.Parse("#7A879C"));
     private static readonly SolidColorBrush Line =
-        new(Color.Parse("#E6EBF4"));
-    private static readonly SolidColorBrush PageBackground =
-        new(Color.Parse("#F2F5FB"));
+        new(Color.Parse("#E7ECF5"));
+    private static readonly SolidColorBrush PageBg =
+        new(Color.Parse("#F3F6FC"));
+    private static readonly SolidColorBrush FieldBg =
+        new(Color.Parse("#F8FAFE"));
+    private static readonly SolidColorBrush Green =
+        new(Color.Parse("#2FBF71"));
+    private static readonly SolidColorBrush Accent =
+        new(Color.Parse("#FFC93C"));
+    private static readonly SolidColorBrush Danger =
+        new(Color.Parse("#C0362C"));
 
     private readonly Grid _pageHost = new();
 
     public MainView()
     {
-        _pageHost.Background = PageBackground;
+        _pageHost.Background = PageBg;
         Content = _pageHost;
         SetPage(LicenseGate.IsAccepted() ? BuildMainPage() : BuildLicensePage());
     }
@@ -62,7 +75,7 @@ public class MainView : UserControl
 
     private Control PageShell(Control body, bool showTabs, bool aboutActive)
     {
-        var root = new Grid { Background = PageBackground };
+        var root = new Grid { Background = PageBg };
         root.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
         root.RowDefinitions.Add(new RowDefinition(GridLength.Parse("*")));
         if (showTabs)
@@ -87,12 +100,13 @@ public class MainView : UserControl
         return root;
     }
 
+    /// <summary>Brand bar: icon, two-line title, and a live status pill.</summary>
     private static Control BuildBrandBar()
     {
         var bar = new Border
         {
-            Height = 64,
-            Padding = new Thickness(16, 0),
+            Height = 78,
+            Padding = new Thickness(18, 0),
             Background = new LinearGradientBrush
             {
                 StartPoint = RelativePoint.TopLeft,
@@ -100,41 +114,82 @@ public class MainView : UserControl
                 GradientStops =
                 {
                     new GradientStop(Color.Parse("#0B47C9"), 0),
-                    new GradientStop(Color.Parse("#3A82F0"), 1),
+                    new GradientStop(Color.Parse("#4A8BFF"), 1),
                 },
             },
         };
-        var row = new StackPanel
+
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Parse("*")));
+        grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+
+        var left = new StackPanel
         {
             Orientation = Orientation.Horizontal,
-            Spacing = 12,
+            Spacing = 13,
             VerticalAlignment = VerticalAlignment.Center,
         };
-        row.Children.Add(BrandIcon(34));
-        var titles = new StackPanel { Spacing = 0, VerticalAlignment = VerticalAlignment.Center };
+        left.Children.Add(BrandIcon(42));
+        var titles = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
         titles.Children.Add(new TextBlock
         {
             Text = "FlashDraft",
-            FontSize = 18,
+            FontSize = 20,
             FontWeight = FontWeight.SemiBold,
             Foreground = Brushes.White,
         });
         titles.Children.Add(new TextBlock
         {
-            Text = "LAN and Internet file transfer",
-            FontSize = 10,
+            Text = "Secure peer-to-peer transfer",
+            FontSize = 10.5,
+            Foreground = new SolidColorBrush(Color.Parse("#DCE9FF")),
+        });
+        left.Children.Add(titles);
+
+        var pill = new Border
+        {
+            Background = new SolidColorBrush(Color.Parse("#33FFFFFF")),
+            CornerRadius = new CornerRadius(14),
+            Padding = new Thickness(11, 7),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var pillRow = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 7,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        pillRow.Children.Add(new Border
+        {
+            Width = 7,
+            Height = 7,
+            CornerRadius = new CornerRadius(4),
+            Background = Green,
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+        pillRow.Children.Add(new TextBlock
+        {
+            Text = "Ready",
+            FontSize = 11,
+            FontWeight = FontWeight.SemiBold,
             Foreground = Brushes.White,
         });
-        row.Children.Add(titles);
-        bar.Child = row;
+        pill.Child = pillRow;
+
+        Grid.SetColumn(left, 0);
+        Grid.SetColumn(pill, 1);
+        grid.Children.Add(left);
+        grid.Children.Add(pill);
+        bar.Child = grid;
         return bar;
     }
 
+    /// <summary>Bottom navigation with a rounded active indicator bar.</summary>
     private Control BuildTabStrip(bool aboutActive)
     {
-        var tabs = new Border
+        var strip = new Border
         {
-            Height = 56,
+            Height = 64,
             Background = Brushes.White,
             BorderBrush = Line,
             BorderThickness = new Thickness(0, 1, 0, 0),
@@ -143,90 +198,93 @@ public class MainView : UserControl
         grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Parse("*")));
         grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Parse("*")));
 
-        var transfer = new Button
-        {
-            Content = "Transfer",
-            FontSize = 14,
-            Foreground = aboutActive ? Muted : Blue,
-            FontWeight = aboutActive ? FontWeight.Normal : FontWeight.SemiBold,
-            Background = Brushes.Transparent,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-        transfer.Click += (_, _) => SetPage(BuildMainPage());
-
-        var about = new Button
-        {
-            Content = "About",
-            FontSize = 14,
-            Foreground = aboutActive ? Blue : Muted,
-            FontWeight = aboutActive ? FontWeight.SemiBold : FontWeight.Normal,
-            Background = Brushes.Transparent,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-        about.Click += (_, _) => SetPage(BuildAboutPage());
-
+        Control transfer = TabItem("Transfer", !aboutActive, () => SetPage(BuildMainPage()));
+        Control about = TabItem("About", aboutActive, () => SetPage(BuildAboutPage()));
         Grid.SetColumn(transfer, 0);
         Grid.SetColumn(about, 1);
         grid.Children.Add(transfer);
         grid.Children.Add(about);
-        tabs.Child = grid;
-        return tabs;
+        strip.Child = grid;
+        return strip;
     }
 
-    /// <summary>Main interface: single column of cards plus the bottom tab strip.</summary>
+    private static Control TabItem(string text, bool active, Action onClick)
+    {
+        var cell = new Grid();
+        cell.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+        cell.RowDefinitions.Add(new RowDefinition(GridLength.Parse("*")));
+
+        var indicator = new Border
+        {
+            Width = 44,
+            Height = 3,
+            CornerRadius = new CornerRadius(0, 0, 2, 2),
+            Background = active ? Blue : Brushes.Transparent,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Top,
+        };
+        var button = new Button
+        {
+            Content = text,
+            FontSize = 13,
+            FontWeight = active ? FontWeight.SemiBold : FontWeight.Normal,
+            Foreground = active ? Blue : Muted,
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            VerticalContentAlignment = VerticalAlignment.Center,
+        };
+        button.Click += (_, _) => onClick();
+
+        Grid.SetRow(indicator, 0);
+        Grid.SetRow(button, 1);
+        cell.Children.Add(indicator);
+        cell.Children.Add(button);
+        return cell;
+    }
+
+    /// <summary>Main interface: single column of refined cards plus tab strip.</summary>
     private Control BuildMainPage()
     {
-        var column = new StackPanel { Spacing = 12, Margin = new Thickness(12, 12, 12, 8) };
+        var column = new StackPanel { Spacing = 14, Margin = new Thickness(14, 14, 14, 10) };
         column.Children.Add(PairingCard());
         column.Children.Add(TransferCard());
         column.Children.Add(ProgressCard());
         return PageShell(new ScrollViewer { Content = column }, showTabs: true, aboutActive: false);
     }
 
-    /// <summary>
-    /// Standalone About page. Same brand bar, same cards, same tab strip as the
-    /// main interface; only the content column changes.
-    /// </summary>
+    /// <summary>Standalone About page with the same card language as Transfer.</summary>
     private Control BuildAboutPage()
     {
-        var column = new StackPanel { Spacing = 12, Margin = new Thickness(12, 12, 12, 12) };
+        var column = new StackPanel { Spacing = 14, Margin = new Thickness(14, 14, 14, 14) };
 
-        var aboutPanel = new StackPanel { Spacing = 10 };
-        aboutPanel.Children.Add(SectionHeader("About / 关于"));
-        aboutPanel.Children.Add(new TextBlock
+        column.Children.Add(Card("About / 关于", "PROJECT", new Control[]
         {
-            Text = LicenseContent.Notice,
-            TextWrapping = TextWrapping.Wrap,
-            FontSize = 12,
-            Foreground = Dark,
-        });
-        aboutPanel.Children.Add(new TextBlock
+            new TextBlock
+            {
+                Text = LicenseContent.Notice,
+                TextWrapping = TextWrapping.Wrap,
+                FontSize = 12,
+                Foreground = Ink,
+            },
+            VersionBadge(),
+        }));
+
+        column.Children.Add(Card("License / 许可全文", "FULL TEXT", new Control[]
         {
-            Text = "Version / 版本: 0.1.2",
-            FontSize = 11,
-            Foreground = Muted,
-        });
-        column.Children.Add(Card(aboutPanel));
+            LicenseReader(280),
+        }));
 
-        var licensePanel = new StackPanel { Spacing = 10 };
-        licensePanel.Children.Add(SectionHeader("License / 许可全文"));
-        licensePanel.Children.Add(LicenseReader(300));
-        column.Children.Add(Card(licensePanel));
-
-        var back = BigButton("返回传输 / Back to Transfer", true);
-        back.HorizontalAlignment = HorizontalAlignment.Stretch;
+        var back = PrimaryButton("返回传输 / Back to Transfer");
         back.Click += (_, _) => SetPage(BuildMainPage());
         column.Children.Add(back);
 
         return PageShell(new ScrollViewer { Content = column }, showTabs: true, aboutActive: true);
     }
 
-    /// <summary>
-    /// Standalone first-run license page. No tab strip, so it cannot be skipped.
-    /// Accepting swaps to the main page; declining means closing the app.
-    /// </summary>
+    /// <summary>Standalone first-run license page, without a tab strip.</summary>
     private Control BuildLicensePage()
     {
         var hint = new TextBlock
@@ -235,22 +293,15 @@ public class MainView : UserControl
             FontSize = 10,
             Foreground = Muted,
             TextWrapping = TextWrapping.Wrap,
+            HorizontalAlignment = HorizontalAlignment.Center,
         };
         var check = new CheckBox
         {
             Content = "我已阅读并接受 / I have read and accept",
-            Foreground = Dark,
+            Foreground = Ink,
             FontSize = 12,
         };
-        var proceed = new Button
-        {
-            Content = "继续 / Continue",
-            Background = Blue,
-            Foreground = Brushes.White,
-            Padding = new Thickness(16, 11),
-            FontSize = 13,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-        };
+        var proceed = PrimaryButton("继续 / Continue");
         proceed.Click += (_, _) =>
         {
             if (check.IsChecked != true)
@@ -263,40 +314,282 @@ public class MainView : UserControl
             SetPage(BuildMainPage());
         };
 
-        var column = new StackPanel { Margin = new Thickness(18), Spacing = 10 };
-        column.Children.Add(new TextBlock
+        var column = new StackPanel { Margin = new Thickness(14, 14, 14, 14), Spacing = 14 };
+        column.Children.Add(Card("License Agreement / 许可协议", "STEP 1 OF 1", new Control[]
         {
-            Text = "License Agreement / 许可协议",
-            FontSize = 17,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = Blue,
-        });
-        column.Children.Add(LicenseReader(300));
-        column.Children.Add(check);
-        column.Children.Add(proceed);
-        column.Children.Add(hint);
-
+            LicenseReader(300),
+            check,
+            proceed,
+            hint,
+        }));
         return PageShell(new ScrollViewer { Content = column }, showTabs: false, aboutActive: false);
     }
 
     private static Border LicenseReader(double height) => new()
     {
         Height = height,
-        Background = new SolidColorBrush(Color.Parse("#F7F9FD")),
+        Background = FieldBg,
         BorderBrush = Line,
         BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(8),
-        Padding = new Thickness(10),
+        CornerRadius = new CornerRadius(10),
+        Padding = new Thickness(12),
         Child = new ScrollViewer
         {
             Content = new TextBlock
             {
                 Text = LicenseContent.Text,
                 TextWrapping = TextWrapping.Wrap,
-                FontSize = 10,
-                Foreground = Dark,
+                FontSize = 10.5,
+                Foreground = Ink,
             },
         },
+    };
+
+    private static Control VersionBadge()
+    {
+        var badge = new Border
+        {
+            Background = new SolidColorBrush(Color.Parse("#EEF4FF")),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(10, 6),
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        badge.Child = new TextBlock
+        {
+            Text = "Version 0.1.2  ·  Apache-2.0",
+            FontSize = 10.5,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = Blue,
+        };
+        return badge;
+    }
+
+    /// <summary>A card with a tinted header strip, hairline divider and padded body.</summary>
+    private static Border Card(string title, string hint, IEnumerable<Control> content)
+    {
+        var head = new Border
+        {
+            Background = new LinearGradientBrush
+            {
+                StartPoint = RelativePoint.TopLeft,
+                EndPoint = RelativePoint.BottomRight,
+                GradientStops =
+                {
+                    new GradientStop(Color.Parse("#EFF5FF"), 0),
+                    new GradientStop(Color.Parse("#F9FBFF"), 1),
+                },
+            },
+            CornerRadius = new CornerRadius(16, 16, 0, 0),
+            Padding = new Thickness(16, 13, 16, 13),
+        };
+        var headGrid = new Grid();
+        headGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+        headGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Parse("*")));
+        headGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+
+        var bar = new Border
+        {
+            Width = 4,
+            Height = 16,
+            CornerRadius = new CornerRadius(2),
+            Background = Blue,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 10, 0),
+        };
+        var heading = new TextBlock
+        {
+            Text = title,
+            FontSize = 14,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = Ink,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var tag = new TextBlock
+        {
+            Text = hint,
+            FontSize = 9.5,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = Muted,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        Grid.SetColumn(bar, 0);
+        Grid.SetColumn(heading, 1);
+        Grid.SetColumn(tag, 2);
+        headGrid.Children.Add(bar);
+        headGrid.Children.Add(heading);
+        headGrid.Children.Add(tag);
+        head.Child = headGrid;
+
+        var body = new StackPanel
+        {
+            Margin = new Thickness(16, 14, 16, 16),
+            Spacing = 11,
+        };
+        foreach (Control item in content) body.Children.Add(item);
+
+        var stack = new StackPanel { Spacing = 0 };
+        stack.Children.Add(head);
+        stack.Children.Add(new Border { Height = 1, Background = Line });
+        stack.Children.Add(body);
+
+        return new Border
+        {
+            Background = Brushes.White,
+            CornerRadius = new CornerRadius(16),
+            BorderBrush = Line,
+            BorderThickness = new Thickness(1),
+            Child = stack,
+        };
+    }
+
+    private static Border PairingCard()
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        row.Children.Add(PrimaryButton("Generate my code"));
+        row.Children.Add(SecondaryButton("Bind peer"));
+
+        return Card("Pairing", "STEP 1", new Control[]
+        {
+            Label("My offer code"),
+            Field("Generate a code first"),
+            Label("Peer offer code"),
+            Field("flashdraft://..."),
+            row,
+            new CheckBox { Content = "WAN mode / 公网模式", Foreground = Ink, FontSize = 12 },
+        });
+    }
+
+    private static Border TransferCard()
+    {
+        var first = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        first.Children.Add(SecondaryButton("Wait for transfer"));
+        first.Children.Add(PrimaryButton("Send file"));
+        var second = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        second.Children.Add(SecondaryButton("Loopback self test"));
+        second.Children.Add(DangerButton("Cancel"));
+
+        return Card("Transfer", "STEP 2", new Control[]
+        {
+            Label("Source file"),
+            Field("Full path of the file to send"),
+            Label("Destination directory"),
+            Field("Default download folder"),
+            first,
+            second,
+        });
+    }
+
+    private static Border ProgressCard()
+    {
+        var status = new Grid();
+        status.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+        status.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Parse("*")));
+        status.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+        var dot = new Border
+        {
+            Width = 7,
+            Height = 7,
+            CornerRadius = new CornerRadius(4),
+            Background = Green,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 8, 0),
+        };
+        var state = new TextBlock
+        {
+            Text = "Ready · no active transfer",
+            FontSize = 11.5,
+            Foreground = Muted,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var speed = new TextBlock
+        {
+            Text = "0 B/s",
+            FontSize = 11,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = Blue,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        Grid.SetColumn(dot, 0);
+        Grid.SetColumn(state, 1);
+        Grid.SetColumn(speed, 2);
+        status.Children.Add(dot);
+        status.Children.Add(state);
+        status.Children.Add(speed);
+
+        return Card("Progress", "LIVE", new Control[]
+        {
+            status,
+            new ProgressBar
+            {
+                Minimum = 0,
+                Maximum = 100,
+                Value = 0,
+                Height = 9,
+                Foreground = Blue,
+                Background = new SolidColorBrush(Color.Parse("#EDF1F8")),
+            },
+            new ListBox { Height = 82, Background = FieldBg, BorderBrush = Line,
+                          BorderThickness = new Thickness(1) },
+        });
+    }
+
+    private static TextBlock Label(string text) =>
+        new() { Text = text, FontSize = 11.5, FontWeight = FontWeight.SemiBold, Foreground = Muted };
+
+    private static TextBox Field(string watermark) => new()
+    {
+        Watermark = watermark,
+        FontSize = 13,
+        Foreground = Ink,
+        Background = FieldBg,
+        BorderBrush = Line,
+        BorderThickness = new Thickness(1),
+        CornerRadius = new CornerRadius(10),
+        Padding = new Thickness(12, 10),
+    };
+
+    private static Button PrimaryButton(string text) => new()
+    {
+        Content = text,
+        FontSize = 12.5,
+        FontWeight = FontWeight.SemiBold,
+        Foreground = Brushes.White,
+        Background = Blue,
+        BorderThickness = new Thickness(0),
+        CornerRadius = new CornerRadius(10),
+        Padding = new Thickness(12, 12),
+        HorizontalAlignment = HorizontalAlignment.Stretch,
+        HorizontalContentAlignment = HorizontalAlignment.Center,
+    };
+
+    private static Button SecondaryButton(string text) => new()
+    {
+        Content = text,
+        FontSize = 12.5,
+        FontWeight = FontWeight.SemiBold,
+        Foreground = Blue,
+        Background = Brushes.White,
+        BorderBrush = new SolidColorBrush(Color.Parse("#C9D8F4")),
+        BorderThickness = new Thickness(1),
+        CornerRadius = new CornerRadius(10),
+        Padding = new Thickness(12, 12),
+        HorizontalAlignment = HorizontalAlignment.Stretch,
+        HorizontalContentAlignment = HorizontalAlignment.Center,
+    };
+
+    private static Button DangerButton(string text) => new()
+    {
+        Content = text,
+        FontSize = 12.5,
+        FontWeight = FontWeight.SemiBold,
+        Foreground = Danger,
+        Background = new SolidColorBrush(Color.Parse("#FEF3F2")),
+        BorderBrush = new SolidColorBrush(Color.Parse("#F6D2CE")),
+        BorderThickness = new Thickness(1),
+        CornerRadius = new CornerRadius(10),
+        Padding = new Thickness(12, 12),
+        HorizontalAlignment = HorizontalAlignment.Stretch,
+        HorizontalContentAlignment = HorizontalAlignment.Center,
     };
 
     /// <summary>The real FlashDraft icon, redrawn as vector geometry.</summary>
@@ -316,7 +609,7 @@ public class MainView : UserControl
                 GradientStops =
                 {
                     new GradientStop(Color.Parse("#0B47C9"), 0),
-                    new GradientStop(Color.Parse("#3A82F0"), 1),
+                    new GradientStop(Color.Parse("#4A8BFF"), 1),
                 },
             },
         };
@@ -328,14 +621,14 @@ public class MainView : UserControl
         canvas.Children.Add(new Path
         {
             Data = StreamGeometry.Parse("M57 47 L47 59 H54 L50 70 L64 55 H56 Z"),
-            Fill = new SolidColorBrush(Color.Parse("#FFD84D")),
+            Fill = Accent,
         });
 
         return new Border
         {
             Width = size,
             Height = size,
-            CornerRadius = new CornerRadius(9),
+            CornerRadius = new CornerRadius(11),
             Background = Brushes.White,
             Child = new Viewbox { Margin = new Thickness(2), Child = canvas },
             VerticalAlignment = VerticalAlignment.Center,
@@ -349,96 +642,5 @@ public class MainView : UserControl
         StrokeThickness = 7,
         StrokeLineCap = PenLineCap.Round,
         StrokeJoin = PenLineJoin.Round,
-    };
-
-    private static Border PairingCard()
-    {
-        var panel = new StackPanel { Spacing = 10 };
-        panel.Children.Add(SectionHeader("Pairing"));
-        panel.Children.Add(Label("My offer code"));
-        panel.Children.Add(Field("Generate a code first"));
-        panel.Children.Add(Label("Peer offer code"));
-        panel.Children.Add(Field("flashdraft://..."));
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        actions.Children.Add(BigButton("Generate my code", true));
-        actions.Children.Add(BigButton("Bind peer", false));
-        panel.Children.Add(actions);
-        panel.Children.Add(new CheckBox { Content = "WAN mode", Foreground = Dark,
-                                          FontSize = 13 });
-        return Card(panel);
-    }
-
-    private static Border TransferCard()
-    {
-        var panel = new StackPanel { Spacing = 10 };
-        panel.Children.Add(SectionHeader("Transfer"));
-        panel.Children.Add(Label("Source file"));
-        panel.Children.Add(Field("Full path of the file to send"));
-        panel.Children.Add(Label("Destination directory"));
-        panel.Children.Add(Field("Default download folder"));
-        var first = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        first.Children.Add(BigButton("Wait for transfer", false));
-        first.Children.Add(BigButton("Send file", true));
-        panel.Children.Add(first);
-        var second = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        second.Children.Add(BigButton("Loopback self test", false));
-        second.Children.Add(BigButton("Cancel", false));
-        panel.Children.Add(second);
-        return Card(panel);
-    }
-
-    private static Border ProgressCard()
-    {
-        var panel = new StackPanel { Spacing = 10 };
-        panel.Children.Add(SectionHeader("Progress"));
-        panel.Children.Add(new TextBlock { Text = "Ready - no active transfer",
-                                           FontSize = 12, Foreground = Muted });
-        panel.Children.Add(new ProgressBar { Minimum = 0, Maximum = 100, Value = 0,
-                                             Height = 10, Foreground = Blue });
-        panel.Children.Add(new ListBox { Height = 84 });
-        return Card(panel);
-    }
-
-    private static Border Card(Control content) => new()
-    {
-        Background = Brushes.White,
-        CornerRadius = new CornerRadius(14),
-        BorderBrush = Line,
-        BorderThickness = new Thickness(1),
-        Padding = new Thickness(16),
-        Child = content,
-    };
-
-    private static Control SectionHeader(string title)
-    {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        row.Children.Add(new Border { Width = 3, Height = 15,
-                                      CornerRadius = new CornerRadius(2),
-                                      Background = Blue,
-                                      VerticalAlignment = VerticalAlignment.Center });
-        row.Children.Add(new TextBlock { Text = title, FontSize = 15,
-                                         FontWeight = FontWeight.SemiBold,
-                                         Foreground = Blue });
-        var group = new StackPanel { Spacing = 8 };
-        group.Children.Add(row);
-        group.Children.Add(new Border { Height = 1, Background = Line });
-        return group;
-    }
-
-    private static TextBlock Label(string text) =>
-        new() { Text = text, FontSize = 12, Foreground = Muted };
-
-    private static TextBox Field(string watermark) =>
-        new() { Watermark = watermark, FontSize = 13,
-                Padding = new Thickness(10, 9) };
-
-    private static Button BigButton(string text, bool primary) => new()
-    {
-        Content = text,
-        // Larger padding than the desktop buttons for comfortable touch targets.
-        Padding = new Thickness(13, 12),
-        FontSize = 13,
-        Background = primary ? Blue : new SolidColorBrush(Color.Parse("#EEF2F9")),
-        Foreground = primary ? Brushes.White : Dark,
     };
 }

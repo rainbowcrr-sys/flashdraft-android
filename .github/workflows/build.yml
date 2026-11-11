@@ -124,47 +124,15 @@ jobs:
           script: |
             python3 "$GITHUB_WORKSPACE/packaging/smoke.py"
 
-      - name: Emit about page part 1
+      - name: Upload emulator frames
         if: always()
-        shell: bash
-        run: |
-          python3 -c 'import pathlib; p=pathlib.Path("about-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+3000] for i in range(0,len(b),3000)]; [print("::warning::FD_ABOUT:%d:%s"%(i,x)) for i,x in enumerate(c[0:7],start=0)]'
-
-      - name: Emit about page part 2
-        if: always()
-        shell: bash
-        run: |
-          python3 -c 'import pathlib; p=pathlib.Path("about-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+3000] for i in range(0,len(b),3000)]; [print("::warning::FD_ABOUT:%d:%s"%(i,x)) for i,x in enumerate(c[7:14],start=7)]'
-
-      - name: Emit about page part 3
-        if: always()
-        shell: bash
-        run: |
-          python3 -c 'import pathlib; p=pathlib.Path("about-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+3000] for i in range(0,len(b),3000)]; [print("::warning::FD_ABOUT:%d:%s"%(i,x)) for i,x in enumerate(c[14:21],start=14)]'
-
-      - name: Emit about page part 4
-        if: always()
-        shell: bash
-        run: |
-          python3 -c 'import pathlib; p=pathlib.Path("about-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+3000] for i in range(0,len(b),3000)]; [print("::warning::FD_ABOUT:%d:%s"%(i,x)) for i,x in enumerate(c[21:28],start=21)]'
-
-      - name: Emit about page part 5
-        if: always()
-        shell: bash
-        run: |
-          python3 -c 'import pathlib; p=pathlib.Path("about-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+3000] for i in range(0,len(b),3000)]; [print("::warning::FD_ABOUT:%d:%s"%(i,x)) for i,x in enumerate(c[28:35],start=28)]'
-
-      - name: Emit about page part 6
-        if: always()
-        shell: bash
-        run: |
-          python3 -c 'import pathlib; p=pathlib.Path("about-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+3000] for i in range(0,len(b),3000)]; [print("::warning::FD_ABOUT:%d:%s"%(i,x)) for i,x in enumerate(c[35:42],start=35)]'
-
-      - name: Emit about page part 7
-        if: always()
-        shell: bash
-        run: |
-          python3 -c 'import pathlib; p=pathlib.Path("about-b64.txt"); b=p.read_text() if p.exists() else ""; c=[b[i:i+3000] for i in range(0,len(b),3000)]; [print("::warning::FD_ABOUT:%d:%s"%(i,x)) for i,x in enumerate(c[42:49],start=42)]'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-frames
+          if-no-files-found: warn
+          path: |
+            phone.png
+            about.png
 
   release:
     if: github.event_name != 'pull_request'
