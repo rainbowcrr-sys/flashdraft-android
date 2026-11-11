@@ -124,27 +124,19 @@ jobs:
           script: |
             python3 "$GITHUB_WORKSPACE/packaging/smoke.py"
 
-      - name: Emit emulator frames as annotations
+      - name: Install Pillow
+        if: always()
+        run: python3 -m pip install --quiet pillow
+
+      - name: Emit phone frame
         if: always()
         shell: bash
-        run: |
-          python3 -m pip install --quiet pillow
-          python3 - <<'PY'
-          import os, io, base64
-          from PIL import Image
-          for name in ('phone', 'about'):
-              path = name + '.png'
-              if not os.path.exists(path):
-                  continue
-              image = Image.open(path).convert('RGB')
-              buf = io.BytesIO()
-              image.save(buf, 'JPEG', quality=74, optimize=True)
-              blob = base64.b64encode(buf.getvalue()).decode()
-              chunks = [blob[i:i+4000] for i in range(0, len(blob), 4000)]
-              for i, chunk in enumerate(chunks):
-                  print('::warning::FD_AIMG:%s:%d:%s' % (name, i, chunk))
-              print('FD_AIMG_LEN:%s:%d' % (name, len(blob)))
-          PY
+        run: python3 "$GITHUB_WORKSPACE/packaging/emit_frame.py" phone "phone.png" FD_AIMG 74 320
+
+      - name: Emit about frame
+        if: always()
+        shell: bash
+        run: python3 "$GITHUB_WORKSPACE/packaging/emit_frame.py" about "about.png" FD_AIMG 74 320
 
       - name: Upload emulator frames
         if: always()
