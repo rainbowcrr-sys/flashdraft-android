@@ -24,8 +24,10 @@ using Orientation = Avalonia.Layout.Orientation;
 namespace FlashDraft.App;
 
 /// <summary>
-/// Phone layout. Unlike the desktop window this uses a compact brand bar, a
-/// single column of cards and a bottom tab strip, with larger touch targets.
+/// Phone layout. Transfer, About and the first-run License page are three
+/// separate, equal-level pages: the host swaps its single child instead of
+/// stacking a translucent overlay on top of the main interface. Every page
+/// shares the same brand bar, white cards and blue section headers.
 /// The control tree is built in code and no ViewModel is constructed, so the
 /// activity keeps the verified startup path on Android.
 /// </summary>
@@ -39,17 +41,54 @@ public class MainView : UserControl
         new(Color.Parse("#667085"));
     private static readonly SolidColorBrush Line =
         new(Color.Parse("#E6EBF4"));
+    private static readonly SolidColorBrush PageBackground =
+        new(Color.Parse("#F2F5FB"));
 
-    private Grid? _host;
+    private readonly Grid _pageHost = new();
 
     public MainView()
     {
-        var root = new Grid { Background = new SolidColorBrush(Color.Parse("#F2F5FB")) };
+        _pageHost.Background = PageBackground;
+        Content = _pageHost;
+        SetPage(LicenseGate.IsAccepted() ? BuildMainPage() : BuildLicensePage());
+    }
+
+    /// <summary>Replaces the current page. Nothing is ever stacked on top.</summary>
+    private void SetPage(Control page)
+    {
+        _pageHost.Children.Clear();
+        _pageHost.Children.Add(page);
+    }
+
+    private Control PageShell(Control body, bool showTabs, bool aboutActive)
+    {
+        var root = new Grid { Background = PageBackground };
         root.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
         root.RowDefinitions.Add(new RowDefinition(GridLength.Parse("*")));
-        root.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+        if (showTabs)
+        {
+            root.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+        }
 
-        // Compact brand bar for a narrow portrait viewport.
+        Control bar = BuildBrandBar();
+        Grid.SetRow(bar, 0);
+        root.Children.Add(bar);
+
+        Grid.SetRow(body, 1);
+        root.Children.Add(body);
+
+        if (showTabs)
+        {
+            Control tabs = BuildTabStrip(aboutActive);
+            Grid.SetRow(tabs, 2);
+            root.Children.Add(tabs);
+        }
+
+        return root;
+    }
+
+    private static Control BuildBrandBar()
+    {
         var bar = new Border
         {
             Height = 64,
@@ -65,30 +104,34 @@ public class MainView : UserControl
                 },
             },
         };
-        var barRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12,
-                                      VerticalAlignment = VerticalAlignment.Center };
-        barRow.Children.Add(BrandIcon(34));
+        var row = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 12,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        row.Children.Add(BrandIcon(34));
         var titles = new StackPanel { Spacing = 0, VerticalAlignment = VerticalAlignment.Center };
-        titles.Children.Add(new TextBlock { Text = "FlashDraft", FontSize = 18,
-                                            FontWeight = FontWeight.SemiBold,
-                                            Foreground = Brushes.White });
-        titles.Children.Add(new TextBlock { Text = "LAN and Internet file transfer",
-                                            FontSize = 10, Foreground = Brushes.White });
-        barRow.Children.Add(titles);
-        bar.Child = barRow;
-        Grid.SetRow(bar, 0);
-        root.Children.Add(bar);
+        titles.Children.Add(new TextBlock
+        {
+            Text = "FlashDraft",
+            FontSize = 18,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = Brushes.White,
+        });
+        titles.Children.Add(new TextBlock
+        {
+            Text = "LAN and Internet file transfer",
+            FontSize = 10,
+            Foreground = Brushes.White,
+        });
+        row.Children.Add(titles);
+        bar.Child = row;
+        return bar;
+    }
 
-        // Single column of cards; no left navigation on a phone.
-        var column = new StackPanel { Spacing = 12, Margin = new Thickness(12, 12, 12, 8) };
-        column.Children.Add(PairingCard());
-        column.Children.Add(TransferCard());
-        column.Children.Add(ProgressCard());
-        var scroll = new ScrollViewer { Content = column };
-        Grid.SetRow(scroll, 1);
-        root.Children.Add(scroll);
-
-        // Bottom tab strip replaces the desktop side rail.
+    private Control BuildTabStrip(bool aboutActive)
+    {
         var tabs = new Border
         {
             Height = 56,
@@ -96,49 +139,96 @@ public class MainView : UserControl
             BorderBrush = Line,
             BorderThickness = new Thickness(0, 1, 0, 0),
         };
-        var tabGrid = new Grid();
-        tabGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Parse("*")));
-        tabGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Parse("*")));
-        var transfer = new TextBlock { Text = "Transfer", FontSize = 14,
-                                       FontWeight = FontWeight.SemiBold, Foreground = Blue,
-                                       HorizontalAlignment = HorizontalAlignment.Center,
-                                       VerticalAlignment = VerticalAlignment.Center };
-        var about = new Button { Content = "About", FontSize = 14, Foreground = Muted,
-                                 Background = Brushes.Transparent,
-                                 HorizontalAlignment = HorizontalAlignment.Center,
-                                 VerticalAlignment = VerticalAlignment.Center };
-        about.Click += (_, _) => ShowAboutLicense();
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Parse("*")));
+        grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Parse("*")));
+
+        var transfer = new Button
+        {
+            Content = "Transfer",
+            FontSize = 14,
+            Foreground = aboutActive ? Muted : Blue,
+            FontWeight = aboutActive ? FontWeight.Normal : FontWeight.SemiBold,
+            Background = Brushes.Transparent,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        transfer.Click += (_, _) => SetPage(BuildMainPage());
+
+        var about = new Button
+        {
+            Content = "About",
+            FontSize = 14,
+            Foreground = aboutActive ? Blue : Muted,
+            FontWeight = aboutActive ? FontWeight.SemiBold : FontWeight.Normal,
+            Background = Brushes.Transparent,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        about.Click += (_, _) => SetPage(BuildAboutPage());
+
         Grid.SetColumn(transfer, 0);
         Grid.SetColumn(about, 1);
-        tabGrid.Children.Add(transfer);
-        tabGrid.Children.Add(about);
-        tabs.Child = tabGrid;
-        Grid.SetRow(tabs, 2);
-        root.Children.Add(tabs);
+        grid.Children.Add(transfer);
+        grid.Children.Add(about);
+        tabs.Child = grid;
+        return tabs;
+    }
 
-        var host = new Grid();
-        host.Children.Add(root);
-        _host = host;
-        if (!LicenseGate.IsAccepted())
-        {
-            host.Children.Add(BuildLicenseGate(host));
-        }
-
-        Content = host;
+    /// <summary>Main interface: single column of cards plus the bottom tab strip.</summary>
+    private Control BuildMainPage()
+    {
+        var column = new StackPanel { Spacing = 12, Margin = new Thickness(12, 12, 12, 8) };
+        column.Children.Add(PairingCard());
+        column.Children.Add(TransferCard());
+        column.Children.Add(ProgressCard());
+        return PageShell(new ScrollViewer { Content = column }, showTabs: true, aboutActive: false);
     }
 
     /// <summary>
-    /// Full-screen first-run license page. Without ticking the box the user
-    /// cannot reach the main view; the app is left running so the user exits
-    /// manually, exactly as requested.
+    /// Standalone About page. Same brand bar, same cards, same tab strip as the
+    /// main interface; only the content column changes.
     /// </summary>
-    private Border BuildLicenseGate(Grid host)
+    private Control BuildAboutPage()
     {
-        var veil = new Border
-        {
-            Background = new SolidColorBrush(Color.Parse("#E6F2F5FB")),
-        };
+        var column = new StackPanel { Spacing = 12, Margin = new Thickness(12, 12, 12, 12) };
 
+        var aboutPanel = new StackPanel { Spacing = 10 };
+        aboutPanel.Children.Add(SectionHeader("About / 关于"));
+        aboutPanel.Children.Add(new TextBlock
+        {
+            Text = LicenseContent.Notice,
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 12,
+            Foreground = Dark,
+        });
+        aboutPanel.Children.Add(new TextBlock
+        {
+            Text = "Version / 版本: 0.1.2",
+            FontSize = 11,
+            Foreground = Muted,
+        });
+        column.Children.Add(Card(aboutPanel));
+
+        var licensePanel = new StackPanel { Spacing = 10 };
+        licensePanel.Children.Add(SectionHeader("License / 许可全文"));
+        licensePanel.Children.Add(LicenseReader(300));
+        column.Children.Add(Card(licensePanel));
+
+        var back = BigButton("返回传输 / Back to Transfer", true);
+        back.HorizontalAlignment = HorizontalAlignment.Stretch;
+        back.Click += (_, _) => SetPage(BuildMainPage());
+        column.Children.Add(back);
+
+        return PageShell(new ScrollViewer { Content = column }, showTabs: true, aboutActive: true);
+    }
+
+    /// <summary>
+    /// Standalone first-run license page. No tab strip, so it cannot be skipped.
+    /// Accepting swaps to the main page; declining means closing the app.
+    /// </summary>
+    private Control BuildLicensePage()
+    {
         var hint = new TextBlock
         {
             Text = "Decline by closing the app manually / 不接受请手动退出应用",
@@ -170,78 +260,44 @@ public class MainView : UserControl
             }
 
             LicenseGate.MarkAccepted();
-            host.Children.Remove(veil);
+            SetPage(BuildMainPage());
         };
 
-        var stack = new StackPanel { Margin = new Thickness(18), Spacing = 10 };
-        stack.Children.Add(new TextBlock { Text = "License Agreement / 许可协议",
-                                           FontSize = 17, FontWeight = FontWeight.SemiBold,
-                                           Foreground = Blue });
-        stack.Children.Add(new Border
+        var column = new StackPanel { Margin = new Thickness(18), Spacing = 10 };
+        column.Children.Add(new TextBlock
         {
-            Height = 230,
-            Background = Brushes.White,
-            BorderBrush = Line,
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(10),
-            Child = new ScrollViewer
-            {
-                Content = new TextBlock { Text = LicenseContent.Text,
-                                          TextWrapping = TextWrapping.Wrap,
-                                          FontSize = 10, Foreground = Dark },
-            },
+            Text = "License Agreement / 许可协议",
+            FontSize = 17,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = Blue,
         });
-        stack.Children.Add(check);
-        stack.Children.Add(proceed);
-        stack.Children.Add(hint);
-        veil.Child = stack;
-        return veil;
+        column.Children.Add(LicenseReader(300));
+        column.Children.Add(check);
+        column.Children.Add(proceed);
+        column.Children.Add(hint);
+
+        return PageShell(new ScrollViewer { Content = column }, showTabs: false, aboutActive: false);
     }
 
-    /// <summary>About tab re-opens the full license after acceptance.</summary>
-    private void ShowAboutLicense()
+    private static Border LicenseReader(double height) => new()
     {
-        Grid? host = _host;
-        if (host is null) return;
-
-        var veil = new Border
+        Height = height,
+        Background = new SolidColorBrush(Color.Parse("#F7F9FD")),
+        BorderBrush = Line,
+        BorderThickness = new Thickness(1),
+        CornerRadius = new CornerRadius(8),
+        Padding = new Thickness(10),
+        Child = new ScrollViewer
         {
-            Background = new SolidColorBrush(Color.Parse("#E6F2F5FB")),
-        };
-        var close = new Button
-        {
-            Content = "关闭 / Close",
-            Background = Blue,
-            Foreground = Brushes.White,
-            Padding = new Thickness(16, 11),
-            FontSize = 13,
-        };
-        close.Click += (_, _) => host.Children.Remove(veil);
-
-        var stack = new StackPanel { Margin = new Thickness(18), Spacing = 10 };
-        stack.Children.Add(new TextBlock { Text = "License / 许可全文",
-                                           FontSize = 17, FontWeight = FontWeight.SemiBold,
-                                           Foreground = Blue });
-        stack.Children.Add(new Border
-        {
-            Height = 380,
-            Background = Brushes.White,
-            BorderBrush = Line,
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(10),
-            Child = new ScrollViewer
+            Content = new TextBlock
             {
-                Content = new TextBlock { Text = LicenseContent.Text,
-                                          TextWrapping = TextWrapping.Wrap,
-                                          FontSize = 10, Foreground = Dark },
+                Text = LicenseContent.Text,
+                TextWrapping = TextWrapping.Wrap,
+                FontSize = 10,
+                Foreground = Dark,
             },
-        });
-        stack.Children.Add(close);
-        veil.Child = stack;
-        host.Children.Add(veil);
-    }
+        },
+    };
 
     /// <summary>The real FlashDraft icon, redrawn as vector geometry.</summary>
     private static Control BrandIcon(double size)
