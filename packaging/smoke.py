@@ -42,11 +42,11 @@ def main():
         # Best effort: accept the license and switch to the standalone About
         # page. This is evidence capture only; failures never fail the smoke.
         try:
-            run("adb shell input tap 26 466")
+            run("adb shell input tap 26 395")
             time.sleep(0.6)
-            run("adb shell input tap 160 513")
+            run("adb shell input tap 160 467")
             time.sleep(1.6)
-            run("adb shell input tap 240 612")
+            run("adb shell input tap 240 610")
             time.sleep(1.6)
             capture("about")
         except Exception as exc:

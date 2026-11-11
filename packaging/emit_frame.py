@@ -6,7 +6,13 @@ if not os.path.exists(path):
     print("missing frame: " + path)
     raise SystemExit(0)
 
-source = Image.open(path).convert("RGB")
+# Headless Skia frames contain transparent pixels whose RGB channels hold
+# stale framebuffer data. Composite onto white before any resize/compression,
+# otherwise those bytes show up as coloured blocks and ghost text.
+rgba = Image.open(path).convert("RGBA")
+flat = Image.new("RGBA", rgba.size, (255, 255, 255, 255))
+flat.alpha_composite(rgba)
+source = flat.convert("RGB")
 best = None
 for w in (width, int(width * 0.8), int(width * 0.65)):
     for q in (quality, quality - 12, 58, 46):
