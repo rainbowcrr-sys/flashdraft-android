@@ -31,6 +31,10 @@ def main():
 
         def capture(name):
             png = os.path.join(workspace, name + ".png")
+            # Software-rendered emulator surfaces keep stale tiles until one
+            # full compose has run; discard that warm-up capture.
+            subprocess.run("adb exec-out screencap -p > /dev/null", shell=True)
+            time.sleep(0.8)
             with open(png, "wb") as handle:
                 subprocess.run("adb exec-out screencap -p", shell=True, stdout=handle)
             blob = base64.b64encode(open(png, "rb").read()).decode()
