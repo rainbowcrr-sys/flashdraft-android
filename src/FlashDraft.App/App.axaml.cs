@@ -15,6 +15,7 @@ public class App : global::Avalonia.Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        Loc.Init();
         if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
         {
             singleView.MainView = new MainView();

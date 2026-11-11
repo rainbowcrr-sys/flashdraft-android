@@ -73,7 +73,7 @@ public class MainView : UserControl
         _pageHost.Children.Add(page);
     }
 
-    private Control PageShell(Control body, bool showTabs, bool aboutActive)
+    private Control PageShell(Control body, bool showTabs, string active)
     {
         var root = new Grid { Background = PageBg };
         root.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
@@ -92,7 +92,7 @@ public class MainView : UserControl
 
         if (showTabs)
         {
-            Control tabs = BuildTabStrip(aboutActive);
+            Control tabs = BuildTabStrip(active);
             Grid.SetRow(tabs, 2);
             root.Children.Add(tabs);
         }
@@ -133,14 +133,14 @@ public class MainView : UserControl
         var titles = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
         titles.Children.Add(new TextBlock
         {
-            Text = "FlashDraft",
+            Text = Loc.T("AppTitle"),
             FontSize = 20,
             FontWeight = FontWeight.SemiBold,
             Foreground = Brushes.White,
         });
         titles.Children.Add(new TextBlock
         {
-            Text = "Secure peer-to-peer transfer",
+            Text = Loc.T("PhoneSubtitle"),
             FontSize = 10.5,
             Foreground = new SolidColorBrush(Color.Parse("#DCE9FF")),
         });
@@ -169,7 +169,7 @@ public class MainView : UserControl
         });
         pillRow.Children.Add(new TextBlock
         {
-            Text = "Ready",
+            Text = Loc.T("Ready"),
             FontSize = 11,
             FontWeight = FontWeight.SemiBold,
             Foreground = Brushes.White,
@@ -185,7 +185,7 @@ public class MainView : UserControl
     }
 
     /// <summary>Bottom navigation with a rounded active indicator bar.</summary>
-    private Control BuildTabStrip(bool aboutActive)
+    private Control BuildTabStrip(string active)
     {
         var strip = new Border
         {
@@ -197,13 +197,17 @@ public class MainView : UserControl
         var grid = new Grid();
         grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Parse("*")));
         grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Parse("*")));
+        grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Parse("*")));
 
-        Control transfer = TabItem("Transfer", !aboutActive, () => SetPage(BuildMainPage()));
-        Control about = TabItem("About", aboutActive, () => SetPage(BuildAboutPage()));
+        Control transfer = TabItem(Loc.T("TabTransfer"), active == "transfer", () => SetPage(BuildMainPage()));
+        Control about = TabItem(Loc.T("TabAbout"), active == "about", () => SetPage(BuildAboutPage()));
+        Control settings = TabItem(Loc.T("TabSettings"), active == "settings", () => SetPage(BuildSettingsPage()));
         Grid.SetColumn(transfer, 0);
         Grid.SetColumn(about, 1);
+        Grid.SetColumn(settings, 2);
         grid.Children.Add(transfer);
         grid.Children.Add(about);
+        grid.Children.Add(settings);
         strip.Child = grid;
         return strip;
     }
@@ -252,7 +256,7 @@ public class MainView : UserControl
         column.Children.Add(PairingCard());
         column.Children.Add(TransferCard());
         column.Children.Add(ProgressCard());
-        return PageShell(new ScrollViewer { Content = column }, showTabs: true, aboutActive: false);
+        return PageShell(new ScrollViewer { Content = column }, showTabs: true, active: "transfer");
     }
 
     /// <summary>Standalone About page with the same card language as Transfer.</summary>
@@ -260,11 +264,11 @@ public class MainView : UserControl
     {
         var column = new StackPanel { Spacing = 14, Margin = new Thickness(14, 14, 14, 14) };
 
-        column.Children.Add(Card("About / 关于", "PROJECT", new Control[]
+        column.Children.Add(Card(Loc.T("AboutTitle"), Loc.T("Project"), new Control[]
         {
             new TextBlock
             {
-                Text = LicenseContent.Notice,
+                Text = Loc.Notice(),
                 TextWrapping = TextWrapping.Wrap,
                 FontSize = 12,
                 Foreground = Ink,
@@ -272,16 +276,16 @@ public class MainView : UserControl
             VersionBadge(),
         }));
 
-        column.Children.Add(Card("License / 许可全文", "FULL TEXT", new Control[]
+        column.Children.Add(Card(Loc.T("LicenseTitle"), Loc.T("FullText"), new Control[]
         {
             LicenseReader(280),
         }));
 
-        var back = PrimaryButton("返回传输 / Back to Transfer");
+        var back = PrimaryButton(Loc.T("BackToTransfer"));
         back.Click += (_, _) => SetPage(BuildMainPage());
         column.Children.Add(back);
 
-        return PageShell(new ScrollViewer { Content = column }, showTabs: true, aboutActive: true);
+        return PageShell(new ScrollViewer { Content = column }, showTabs: true, active: "about");
     }
 
     /// <summary>Standalone first-run license page, without a tab strip.</summary>
@@ -289,7 +293,7 @@ public class MainView : UserControl
     {
         var hint = new TextBlock
         {
-            Text = "Decline by closing the app manually / 不接受请手动退出应用",
+            Text = Loc.T("DeclineApp"),
             FontSize = 10,
             Foreground = Muted,
             TextWrapping = TextWrapping.Wrap,
@@ -297,16 +301,16 @@ public class MainView : UserControl
         };
         var check = new CheckBox
         {
-            Content = "我已阅读并接受 / I have read and accept",
+            Content = Loc.T("AcceptLicense"),
             Foreground = Ink,
             FontSize = 12,
         };
-        var proceed = PrimaryButton("继续 / Continue");
+        var proceed = PrimaryButton(Loc.T("Continue"));
         proceed.Click += (_, _) =>
         {
             if (check.IsChecked != true)
             {
-                hint.Text = "Please tick the box first / 请先勾选";
+                hint.Text = Loc.T("TickFirst");
                 return;
             }
 
@@ -315,14 +319,54 @@ public class MainView : UserControl
         };
 
         var column = new StackPanel { Margin = new Thickness(14, 14, 14, 14), Spacing = 14 };
-        column.Children.Add(Card("License Agreement / 许可协议", "STEP 1 OF 1", new Control[]
+        column.Children.Add(Card(Loc.T("LicenseAgreement"), Loc.T("Step1Of1"), new Control[]
         {
             LicenseReader(300),
             check,
             proceed,
             hint,
         }));
-        return PageShell(new ScrollViewer { Content = column }, showTabs: false, aboutActive: false);
+        return PageShell(new ScrollViewer { Content = column }, showTabs: false, active: "license");
+    }
+
+    /// <summary>Standalone Settings page with a single language switch.</summary>
+    private Control BuildSettingsPage()
+    {
+        var column = new StackPanel { Spacing = 14, Margin = new Thickness(14, 14, 14, 14) };
+
+        var hintEn = new TextBlock
+        {
+            Text = Loc.T("LanguageHint"),
+            FontSize = 11.5,
+            Foreground = Muted,
+            TextWrapping = TextWrapping.Wrap,
+        };
+        var hintDefault = new TextBlock
+        {
+            Text = Loc.T("DefaultFromInstall"),
+            FontSize = 11.5,
+            Foreground = Muted,
+            TextWrapping = TextWrapping.Wrap,
+        };
+
+        Button zh = Loc.IsChinese ? PrimaryButton(Loc.T("LangChinese")) : SecondaryButton(Loc.T("LangChinese"));
+        Button en = Loc.IsChinese ? SecondaryButton(Loc.T("LangEnglish")) : PrimaryButton(Loc.T("LangEnglish"));
+        zh.Click += (_, _) => { Loc.Set(Loc.Chinese); SetPage(BuildSettingsPage()); };
+        en.Click += (_, _) => { Loc.Set(Loc.English); SetPage(BuildSettingsPage()); };
+
+        column.Children.Add(Card(Loc.T("SettingsTitle"), Loc.T("SettingsTag"), new Control[]
+        {
+            new TextBlock { Text = Loc.T("LanguageLabel"), FontSize = 13,
+                            FontWeight = FontWeight.SemiBold, Foreground = Ink },
+            hintEn,
+            hintDefault,
+            zh,
+            en,
+            new TextBlock { Text = Loc.T("Saved"), FontSize = 11,
+                            Foreground = Green, TextWrapping = TextWrapping.Wrap },
+        }));
+
+        return PageShell(new ScrollViewer { Content = column }, showTabs: true, active: "settings");
     }
 
     private static Border LicenseReader(double height) => new()
@@ -356,7 +400,7 @@ public class MainView : UserControl
         };
         badge.Child = new TextBlock
         {
-            Text = "Version 0.1.2  ·  Apache-2.0",
+            Text = Loc.T("Version"),
             FontSize = 10.5,
             FontWeight = FontWeight.SemiBold,
             Foreground = Blue,
@@ -436,35 +480,35 @@ public class MainView : UserControl
     private static Border PairingCard()
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        row.Children.Add(PrimaryButton("Generate my code"));
-        row.Children.Add(SecondaryButton("Bind peer"));
+        row.Children.Add(PrimaryButton(Loc.T("GenerateCode")));
+        row.Children.Add(SecondaryButton(Loc.T("BindPeer")));
 
-        return Card("Pairing", "STEP 1", new Control[]
+        return Card(Loc.T("Pairing"), Loc.T("Step1"), new Control[]
         {
-            Label("My offer code"),
-            Field("Generate a code first"),
-            Label("Peer offer code"),
+            Label(Loc.T("MyOfferCode")),
+            Field(Loc.T("WatermarkGenerate")),
+            Label(Loc.T("PeerOfferCode")),
             Field("flashdraft://..."),
             row,
-            new CheckBox { Content = "WAN mode / 公网模式", Foreground = Ink, FontSize = 12 },
+            new CheckBox { Content = Loc.T("WanMode"), Foreground = Ink, FontSize = 12 },
         });
     }
 
     private static Border TransferCard()
     {
         var first = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        first.Children.Add(SecondaryButton("Wait for transfer"));
-        first.Children.Add(PrimaryButton("Send file"));
+        first.Children.Add(SecondaryButton(Loc.T("WaitTransfer")));
+        first.Children.Add(PrimaryButton(Loc.T("SendFile")));
         var second = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        second.Children.Add(SecondaryButton("Loopback self test"));
-        second.Children.Add(DangerButton("Cancel"));
+        second.Children.Add(SecondaryButton(Loc.T("Loopback")));
+        second.Children.Add(DangerButton(Loc.T("Cancel")));
 
-        return Card("Transfer", "STEP 2", new Control[]
+        return Card(Loc.T("TabTransfer"), Loc.T("Step2"), new Control[]
         {
-            Label("Source file"),
-            Field("Full path of the file to send"),
-            Label("Destination directory"),
-            Field("Default download folder"),
+            Label(Loc.T("SourceFile")),
+            Field(Loc.T("WatermarkSource")),
+            Label(Loc.T("DestDir")),
+            Field(Loc.T("WatermarkDest")),
             first,
             second,
         });
@@ -487,7 +531,7 @@ public class MainView : UserControl
         };
         var state = new TextBlock
         {
-            Text = "Ready · no active transfer",
+            Text = Loc.T("ReadyNoTransfer"),
             FontSize = 11.5,
             Foreground = Muted,
             VerticalAlignment = VerticalAlignment.Center,
@@ -507,7 +551,7 @@ public class MainView : UserControl
         status.Children.Add(state);
         status.Children.Add(speed);
 
-        return Card("Progress", "LIVE", new Control[]
+        return Card(Loc.T("Progress"), Loc.T("Live"), new Control[]
         {
             status,
             new ProgressBar
