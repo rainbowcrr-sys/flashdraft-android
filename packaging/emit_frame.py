@@ -16,8 +16,8 @@ for w in (width, int(width * 0.8), int(width * 0.65)):
         buf = io.BytesIO()
         image.save(buf, "JPEG", quality=q, optimize=True)
         blob = base64.b64encode(buf.getvalue()).decode()
-        chunks = [blob[i:i + 5000] for i in range(0, len(blob), 5000)]
-        if len(chunks) <= 9:
+        chunks = [blob[i:i + 4000] for i in range(0, len(blob), 5000)]
+        if len(chunks) <= 9 and len(prefix) + len(name) + 6 + 4000 <= 4096:
             best = (blob, chunks, q, w)
             break
     if best:
