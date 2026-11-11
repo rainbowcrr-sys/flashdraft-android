@@ -148,7 +148,7 @@ public class MainView : UserControl
 
         var pill = new Border
         {
-            Background = new SolidColorBrush(Color.Parse("#33FFFFFF")),
+            Background = new SolidColorBrush(Color.Parse("#2F6BE4")),
             CornerRadius = new CornerRadius(14),
             Padding = new Thickness(11, 7),
             VerticalAlignment = VerticalAlignment.Center,
@@ -369,16 +369,7 @@ public class MainView : UserControl
     {
         var head = new Border
         {
-            Background = new LinearGradientBrush
-            {
-                StartPoint = RelativePoint.TopLeft,
-                EndPoint = RelativePoint.BottomRight,
-                GradientStops =
-                {
-                    new GradientStop(Color.Parse("#EFF5FF"), 0),
-                    new GradientStop(Color.Parse("#F9FBFF"), 1),
-                },
-            },
+            Background = new SolidColorBrush(Color.Parse("#F1F6FF")),
             CornerRadius = new CornerRadius(16, 16, 0, 0),
             Padding = new Thickness(16, 13, 16, 13),
         };
